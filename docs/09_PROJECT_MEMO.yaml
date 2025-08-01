@@ -1,6 +1,35 @@
 project_title: "Googleフォーム連携モバイル入力システム開発"
 description: "Googleフォームを活用し、特にバーコードスキャン機能を備えたモバイルフレンドリーなデータ入力用HTMLページを設計・実装するプロジェクト。入力データは指定のスプレッドシートに自動連携される。"
 
+integration_details:
+  google_form:
+    submit_url: "https://docs.google.com/forms/d/e/1FAIpQLSfptpO8gQ0N1dV0xINg5sJD3ZCIWk56-sg_hXauDcZqahhD4Q/formResponse"
+    fields_mapping:
+      - entry_id: "entry.466911711"
+        question: "CD連番"
+      - entry_id: "entry.107394738"
+        question: "ラベルの有無"
+      - entry_id: "entry.1804364688"
+        question: "保存状態"
+      - entry_id: "entry.2089926208"
+        question: "バインダータイトル"
+      - entry_id: "entry.1038562288"
+        question: "バーコード"
+      - entry_id: "entry.164859345"
+        question: "メディアタイトル"
+      - entry_id: "entry.961024134"
+        question: "プロパティ"
+    internal_fields:
+      - entry_id: "fvv"
+      - entry_id: "partialResponse"
+      - entry_id: "pageHistory"
+      - entry_id: "fbzx"
+    notes: "これらのentry_idはGoogleフォームの内部IDであり、フォームの構造変更により変動する可能性がある。"
+  google_sheet:
+    url: "https://docs.google.com/spreadsheets/d/1gmCngK56SOzTOv79t3VOrV6OPemSyudCzhmOQZSH3xg/edit?gid=807914535#gid=807914535"
+    purpose: "Googleフォームから送信されたすべての入力データを記録・管理するデータベースとして機能する。"
+    notes: "Googleフォームと連携することで、フォームの回答が自動的に新しい行として追加される。"
+
 phases:
   - phase_name: "1. Googleフォーム設問の初期検討"
     user_request: "添付画像に基づき、Googleフォームの設問の種類を検討・作成してください。"
