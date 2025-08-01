@@ -75,9 +75,7 @@ function doGet(e) {
     const action = e.parameter.action;
     let responseData;
 
-    if (action === 'getNextCdNumber') {
-      responseData = { nextCdNumber: getNextCdNumber() };
-    } else if (action === 'getHistory') {
+    if (action === 'getHistory') {
       const limit = e.parameter.limit || 5; // デフォルトは5件
       responseData = { history: getHistoryData(limit) };
     } else {
@@ -90,6 +88,18 @@ function doGet(e) {
     Logger.log("GETリクエスト処理中にエラーが発生しました: " + error.message);
     return createJsonResponse({ status: 'error', message: 'データ取得中にエラーが発生しました: ' + error.message });
   }
+}
+
+/**
+ * CORSプリフライトリクエストに応答するための関数
+ * @param {Object} e - イベントオブジェクト
+ * @returns {ContentService.TextOutput} - CORS許可ヘッダーを含む空のレスポンス
+ */
+function doOptions(e) {
+  return ContentService.createTextOutput()
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .setHeader('Access-control-Allow-Headers', 'Content-Type');
 }
 
 /**
@@ -166,20 +176,7 @@ function createJsonResponse(obj) {
   return jsonp;
 }
 
-/**
- * スプレッドシートから次のCD連番を取得する
- * @returns {number} - 次のCD連番
- */
-function getNextCdNumber() {
-  const sheet = SpreadsheetApp.openById(SHEET_ID).getActiveSheet();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    return 1; // データがヘッダー行のみの場合は1から開始
-  }
-  // CD連番は2列目（B列）と仮定
-  const lastCdNumber = sheet.getRange(lastRow, 2).getValue();
-  return !isNaN(lastCdNumber) ? parseInt(lastCdNumber, 10) + 1 : 1;
-}
+
 
 /**
  * スプレッドシートから登録履歴を取得する
