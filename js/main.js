@@ -94,104 +94,49 @@ function showStatus(message, type) {
     setTimeout(() => { formStatus.style.display = 'none'; }, 5000);
 }
 
-// --- バーコードスキャナー (QuaggaJS) ---
+// --- バーコードスキャナー (QuaggaJS - 静止画読み取り) ---
 const barcodeInput = document.getElementById('barcode_input');
-const startScannerBtn = document.getElementById('startScanner');
-const stopScannerBtn = document.getElementById('stopScanner');
+const scanImageButton = document.getElementById('scan-image-button');
+const barcodeFileInput = document.getElementById('barcode-file-input');
 const barcodeFormatDiv = document.getElementById('barcode-format');
-const readerSelect = document.getElementById('reader-select');
-let scannerRunning = false;
 
-const ALL_READERS = ["code_39_reader", "code_128_reader", "i2of5_reader", "ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"];
-
-readerSelect.addEventListener('change', () => {
-    if (scannerRunning) {
-        stopScanner();
-        startScanner(); // リーダー切り替え後、スキャナーを再起動
-    }
+scanImageButton.addEventListener('click', () => {
+    barcodeFileInput.click(); // ファイル選択ダイアログを開く
 });
 
-function startScanner() {
-    if (scannerRunning) return;
-    showStatus('スキャナーを起動しています...', 'info');
+barcodeFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+        return;
+    }
 
-    const selectedReader = readerSelect.value;
-    const readersToUse = selectedReader === "auto" ? ALL_READERS : [selectedReader];
+    const imageUrl = URL.createObjectURL(file);
+    showStatus('画像を解析中...', 'info');
 
-    Quagga.init({
-        inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: document.querySelector('#interactive'),
-            constraints: {
-                width: { min: 1280 },
-                height: { min: 720 },
-                facingMode: "environment",
-                aspectRatio: { min: 1, max: 2 }
-            }
-        },
-        locator: {
-            patchSize: "medium",
-            halfSample: false
-        },
+    Quagga.decodeSingle({
+        src: imageUrl,
         numOfWorkers: navigator.hardwareConcurrency || 4,
         decoder: {
-            readers: readersToUse,
-            multiple: false
+            readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "upc_reader"]
         },
-        locate: true
-    }, (err) => {
-        if (err) { showStatus(`スキャナーの起動に失敗: ${err.message}`, 'error'); return; }
-        Quagga.start();
-        scannerRunning = true;
-        showStatus('スキャナー起動済み。バーコードをカメラに...', 'info');
-    });
+        locate: true, // より詳細な探索を有効にする
+    }, (result) => {
+        URL.revokeObjectURL(imageUrl); // メモリリークを防ぐ
 
-    Quagga.onDetected((data) => {
-        if (data && data.codeResult && data.codeResult.code) {
-            const code = data.codeResult.code;
-            // 検出されたコードがアルファベットで始まるかチェック
+        if (result && result.codeResult) {
+            const code = result.codeResult.code;
             if (/^[A-Za-z]/.test(code)) {
                 barcodeInput.value = code;
-                barcodeFormatDiv.textContent = `検出フォーマット: ${data.codeResult.format}`;
+                barcodeFormatDiv.textContent = `検出フォーマット: ${result.codeResult.format}`;
                 showStatus(`バーコードを検出: ${code}`, 'success');
-                stopScanner();
             } else {
-                // アルファベットで始まらないコードは無視してスキャンを続行
-                console.log(`[INFO] Ignored barcode (does not start with an alphabet): ${code}`);
+                showStatus(`英字で始まらないため無視: ${code}`, 'error');
             }
+        } else {
+            showStatus('バーコードが検出できませんでした。再撮影してください。', 'error');
         }
     });
-
-    Quagga.onProcessed(function(result) {
-        var drawingCtx = Quagga.canvas.ctx.overlay,
-            drawingCanvas = Quagga.canvas.dom.overlay;
-
-        if (result) {
-            if (result.boxes) {
-                drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.width), parseInt(drawingCanvas.height));
-                result.boxes.filter(function (box) {
-                    return box !== result.box;
-                }).forEach(function (box) {
-                    Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: "green", lineWidth: 2 });
-                });
-            }
-
-            if (result.box) {
-                Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, { color: "#00F", lineWidth: 2 });
-            }
-
-            if (result.codeResult && result.codeResult.code) {
-                Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, { color: "red", lineWidth: 3 });
-            }
-        }
-    });
-}
-function stopScanner() {
-    if (scannerRunning) { Quagga.stop(); scannerRunning = false; showStatus('スキャナーを停止しました。', 'info'); }
-}
-startScannerBtn.addEventListener('click', startScanner);
-stopScannerBtn.addEventListener('click', stopScanner);
+});
 
 // --- OCR (Tesseract.js) ---
 const ocrFileInput = document.getElementById('ocr-file-input');
