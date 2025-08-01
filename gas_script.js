@@ -66,6 +66,33 @@ function doPost(e) {
 }
 
 /**
+ * WebアプリにGETリクエストが送られたときに実行される関数
+ * @param {Object} e - イベントオブジェクト (リクエストパラメータを含む)
+ * @returns {ContentService.TextOutput} - フロントエンドに返すJSONレスポンス
+ */
+function doGet(e) {
+  try {
+    const action = e.parameter.action;
+    let responseData;
+
+    if (action === 'getNextCdNumber') {
+      responseData = { nextCdNumber: getNextCdNumber() };
+    } else if (action === 'getHistory') {
+      const limit = e.parameter.limit || 5; // デフォルトは5件
+      responseData = { history: getHistoryData(limit) };
+    } else {
+      throw new Error('無効なアクションが指定されました。');
+    }
+
+    return createJsonResponse({ status: 'success', data: responseData });
+
+  } catch (error) {
+    Logger.log("GETリクエスト処理中にエラーが発生しました: " + error.message);
+    return createJsonResponse({ status: 'error', message: 'データ取得中にエラーが発生しました: ' + error.message });
+  }
+}
+
+/**
  * Base64データをデコードしてGoogleドライブに画像として保存する
  * @param {string} base64Data - Base64エンコードされた画像データ
  * @param {string} fileName - 保存するファイル名
@@ -132,7 +159,55 @@ function writeToSheet(data) {
  * @returns {ContentService.TextOutput} - JSONP形式のテキスト出力
  */
 function createJsonResponse(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
+  const jsonp = ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+  // CORSヘッダーを追加して、どのオリジンからでもアクセスを許可する
+  jsonp.setHeader('Access-Control-Allow-Origin', '*');
+  return jsonp;
+}
+
+/**
+ * スプレッドシートから次のCD連番を取得する
+ * @returns {number} - 次のCD連番
+ */
+function getNextCdNumber() {
+  const sheet = SpreadsheetApp.openById(SHEET_ID).getActiveSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return 1; // データがヘッダー行のみの場合は1から開始
+  }
+  // CD連番は2列目（B列）と仮定
+  const lastCdNumber = sheet.getRange(lastRow, 2).getValue();
+  return !isNaN(lastCdNumber) ? parseInt(lastCdNumber, 10) + 1 : 1;
+}
+
+/**
+ * スプレッドシートから登録履歴を取得する
+ * @param {number} limit - 取得する件数
+ * @returns {Array<Object>} - 履歴データの配列
+ */
+function getHistoryData(limit) {
+  const sheet = SpreadsheetApp.openById(SHEET_ID).getActiveSheet();
+  const lastRow = sheet.getLastRow();
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  if (lastRow < 2) {
+    return []; // データなし
+  }
+
+  const startRow = Math.max(2, lastRow - limit + 1);
+  const numRows = lastRow - startRow + 1;
+  const data = sheet.getRange(startRow, 1, numRows, headers.length).getValues();
+
+  // データをJSONオブジェクトの配列に変換
+  const history = data.map(row => {
+    const entry = {};
+    headers.forEach((header, index) => {
+      entry[header] = row[index];
+    });
+    return entry;
+  }).reverse(); // 新しいものが上に来るように逆順にする
+
+  return history;
 }
 
