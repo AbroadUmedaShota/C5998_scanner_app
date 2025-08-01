@@ -34,6 +34,7 @@
             color: #555;
         }
         input[type="text"],
+        input[type="file"],
         textarea,
         select {
             width: calc(100% - 20px);
@@ -48,14 +49,14 @@
             resize: vertical;
             min-height: 80px;
         }
-        .radio-group, .select-group {
+        .radio-group {
             margin-bottom: 20px;
             padding: 10px;
             border: 1px solid #eee;
             border-radius: 5px;
             background-color: #f9f9f9;
         }
-        .radio-group label, .select-group label {
+        .radio-group label {
             display: inline-block;
             margin-right: 15px;
             font-weight: normal;
@@ -79,13 +80,17 @@
         button:hover {
             background-color: #0056b3;
         }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
         #barcode-scanner-container {
             margin-bottom: 20px;
             text-align: center;
         }
         #interactive.viewport {
             width: 100%;
-            height: 300px; /* Adjust height as needed */
+            height: 300px;
             margin: 0 auto;
             position: relative;
             overflow: hidden;
@@ -96,7 +101,7 @@
         #interactive.viewport video {
             width: 100% !important;
             height: 100% !important;
-            object-fit: cover; /* Ensures video covers container */
+            object-fit: cover;
             position: absolute;
             left: 0;
             top: 0;
@@ -110,52 +115,73 @@
             margin: 0 5px;
             display: inline-block;
         }
-        .error-message {
-            color: red;
-            margin-top: 10px;
+        .message {
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 5px;
             text-align: center;
+            font-weight: bold;
+        }
+        .error-message {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .success-message {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
         }
         .info-message {
-            color: green;
-            margin-top: 10px;
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+        }
+        #preview-container {
             text-align: center;
+            margin-top: 10px;
+        }
+        #preview-container img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>CD・メディア入力フォーム</h1>
-        <p class="info-message">
-            **重要:** 下記の「YOUR_GOOGLE_FORM_SUBMIT_URL」を、あなたのGoogleフォームの送信URLに置き換えてください。
-        </p>
-        <form id="cdMediaForm" action="https://docs.google.com/forms/d/e/1FAIpQLSfptpO8gQ0N1dV0xINg5sJD3ZCIWk56-sg_hXauDcZqahhD4Q/formResponse" method="POST" target="_self">
+        <div id="form-status" class="message" style="display: none;"></div>
+
+        <form id="cdMediaForm">
 
             <label for="cd_number">CD連番</label>
-            <input type="text" id="cd_number" name="entry.466911711" placeholder="例: 001" inputmode="numeric" pattern="[0-9]*">
+            <input type="text" id="cd_number" name="cd_number" placeholder="例: 001" inputmode="numeric">
 
             <div class="radio-group">
                 <label>ラベルの有無</label><br>
-                <input type="radio" id="label_ari" name="entry.107394738" value="ラベルあり" required>
+                <input type="radio" id="label_ari" name="label_status" value="ラベルあり" required>
                 <label for="label_ari">ラベルあり</label>
-                <input type="radio" id="label_nashi" name="entry.107394738" value="ラベルなし" required>
+                <input type="radio" id="label_nashi" name="label_status" value="ラベルなし" required>
                 <label for="label_nashi">ラベルなし</label>
             </div>
 
             <div class="radio-group">
                 <label>保存状態</label><br>
-                <input type="radio" id="save_case" name="entry.1804364688" value="ケース" required>
+                <input type="radio" id="save_case" name="save_condition" value="ケース" required>
                 <label for="save_case">ケース</label>
-                <input type="radio" id="save_binder" name="entry.1804364688" value="バインダー" required>
+                <input type="radio" id="save_binder" name="save_condition" value="バインダー" required>
                 <label for="save_binder">バインダー</label>
-                <input type="radio" id="save_other" name="entry.1804364688" value="その他" required>
+                <input type="radio" id="save_other" name="save_condition" value="その他" required>
                 <label for="save_other">その他</label>
             </div>
 
             <label for="binder_title">バインダータイトル</label>
-            <textarea id="binder_title" name="entry.2089926208" placeholder="バインダーのタイトルを入力してください"></textarea>
+            <textarea id="binder_title" name="binder_title" placeholder="バインダーのタイトルを入力してください"></textarea>
 
             <label for="barcode_input">バーコード</label>
-            <input type="text" id="barcode_input" name="entry.1038562288" placeholder="バーコードをスキャンまたは手入力" inputmode="numeric" pattern="[0-9]*">
+            <input type="text" id="barcode_input" name="barcode" placeholder="バーコードをスキャンまたは手入力">
             
             <div id="barcode-scanner-container">
                 <div id="interactive" class="viewport"></div>
@@ -163,97 +189,152 @@
                     <button type="button" id="startScanner">スキャナー起動</button>
                     <button type="button" id="stopScanner">スキャナー停止</button>
                 </div>
-                <div id="scanner-status" class="info-message"></div>
-                <div id="scanner-error" class="error-message"></div>
             </div>
 
             <label for="media_title">メディアタイトル</label>
-            <textarea id="media_title" name="entry.164859345" placeholder="メディアのタイトルを手入力してください"></textarea>
+            <textarea id="media_title" name="media_title" placeholder="メディアのタイトルを手入力してください"></textarea>
 
             <label for="property_text">プロパティ</label>
-            <textarea id="property_text" name="entry.961024134" placeholder="詳細なプロパティ情報を入力してください"></textarea>
+            <textarea id="property_text" name="property_text" placeholder="詳細なプロパティ情報を入力してください"></textarea>
 
-            <!-- Google Forms 内部フィールド (通常は変更不要ですが、フォームの動作に影響する場合があります) -->
-            <input type="hidden" name="fvv" value="1">
-            <input type="hidden" name="partialResponse" value='[null,null,"-8922437685945978643"]'>
-            <input type="hidden" name="pageHistory" value="0">
-            <input type="hidden" name="fbzx" value="3291320949815565601">
-            <!-- dlutとsubmissionTimestampはGoogle Formが自動で生成することが多いため、ここでは含めません。 -->
+            <label for="screenshot">スクリーンショット</label>
+            <input type="file" id="screenshot" name="screenshot" accept="image/*" capture="environment">
+            <div id="preview-container"></div>
 
-            <button type="submit">フォームを送信</button>
+            <button type="submit" id="submit-button">フォームを送信</button>
         </form>
     </div>
 
-    <!-- QuaggaJS ライブラリの読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <script>
+        // GAS Web App URL
+        const GAS_URL = 'https://script.google.com/a/macros/abroad-o.com/s/AKfycbxH4gauLiZwE7Qe31wlMKItuom-L6nUSoDE6uqosEwdBmEmKC3svJTpkeKJZoxK2UkPGQ/exec';
+
+        // Form and elements
+        const form = document.getElementById('cdMediaForm');
+        const submitButton = document.getElementById('submit-button');
+        const formStatus = document.getElementById('form-status');
+        const screenshotInput = document.getElementById('screenshot');
+        const previewContainer = document.getElementById('preview-container');
+
+        // Barcode Scanner elements
         const barcodeInput = document.getElementById('barcode_input');
         const startScannerBtn = document.getElementById('startScanner');
         const stopScannerBtn = document.getElementById('stopScanner');
-        const scannerStatus = document.getElementById('scanner-status');
-        const scannerError = document.getElementById('scanner-error');
         let scannerRunning = false;
 
+        // --- Image Preview ---
+        screenshotInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewContainer.innerHTML = `<img src="${e.target.result}" alt="画像プレビュー">`;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.innerHTML = '';
+            }
+        });
+
+        // --- Form Submission ---
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitButton.disabled = true;
+            showStatus('送信中... しばらくお待ちください。', 'info');
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // Handle file input for Base64 conversion
+            const file = screenshotInput.files[0];
+            if (file) {
+                try {
+                    data.screenshot = await toBase64(file);
+                } catch (error) {
+                    showStatus('画像の読み込みに失敗しました。', 'error');
+                    console.error(error);
+                    submitButton.disabled = false;
+                    return;
+                }
+            } else {
+                data.screenshot = ''; // Send empty string if no file
+            }
+            
+            // Send data to Google Apps Script
+            try {
+                const response = await fetch(GAS_URL, {
+                    method: 'POST',
+                    mode: 'cors', // Important for cross-origin requests
+                    cache: 'no-cache',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+
+                if (result.status === 'success') {
+                    showStatus('送信が完了しました！', 'success');
+                    form.reset();
+                    previewContainer.innerHTML = '';
+                } else {
+                    throw new Error(result.message || '不明なエラーが発生しました。');
+                }
+            } catch (error) {
+                showStatus(`送信に失敗しました: ${error.message}`, 'error');
+                console.error('Fetch Error:', error);
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+
+        // --- Helper Functions ---
+        const toBase64 = (file) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        function showStatus(message, type) {
+            formStatus.textContent = message;
+            formStatus.className = `message ${type}-message`;
+            formStatus.style.display = 'block';
+        }
+
+        // --- Barcode Scanner Logic (QuaggaJS) ---
         function startScanner() {
             if (scannerRunning) return;
-
-            scannerStatus.textContent = 'スキャナー起動中...';
-            scannerError.textContent = ''; // Clear previous errors
+            showStatus('スキャナーを起動しています...', 'info');
 
             Quagga.init({
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
                     target: document.querySelector('#interactive'),
-                    constraints: {
-                        facingMode: "environment" // 背面カメラを優先
-                    },
+                    constraints: { facingMode: "environment" },
                 },
                 decoder: {
-                    readers: ["ean_reader", "ean_8_reader", "code_39_reader", "code_128_reader", "upc_reader", "upc_e_reader"] // 読み取るバーコードの種類
+                    readers: ["ean_reader", "ean_8_reader", "code_39_reader", "code_128_reader", "upc_reader", "upc_e_reader"],
                 }
-            }, function (err) {
+            }, (err) => {
                 if (err) {
-                    console.error("QuaggaJS 初期化エラー:", err);
-                    scannerError.textContent = 'スキャナーの起動に失敗しました: ' + err.message;
-                    scannerStatus.textContent = '';
+                    console.error("QuaggaJS Init Error:", err);
+                    showStatus(`スキャナーの起動に失敗: ${err.message}`, 'error');
                     return;
                 }
                 Quagga.start();
                 scannerRunning = true;
-                scannerStatus.textContent = 'スキャナー起動済み。バーコードをカメラにかざしてください。';
-                console.log("QuaggaJS started.");
+                showStatus('スキャナー起動済み。バーコードをカメラにかざしてください。', 'info');
             });
 
-            Quagga.onDetected(function (data) {
+            Quagga.onDetected((data) => {
                 if (data && data.codeResult) {
                     barcodeInput.value = data.codeResult.code;
-                    scannerStatus.textContent = 'バーコードを検出しました: ' + data.codeResult.code;
-                    stopScanner(); // 検出したらスキャナーを停止
-                }
-            });
-
-            Quagga.onProcessed(function(result) {
-                var drawingCtx = Quagga.canvas.ctx.overlay,
-                    drawingCanvas = Quagga.canvas.dom.overlay;
-
-                if (result) {
-                    if (result.boxes) {
-                        drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.width), parseInt(drawingCanvas.height));
-                        result.boxes.filter(function (box) {
-                            return box !== result.box;
-                        }).forEach(function (box) {
-                            Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, { color: "green", lineWidth: 2 });
-                        });
-                    }
-
-                    if (result.box) {
-                        Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, { color: "#00F", lineWidth: 2 });
-                    }
-
-                    if (result.codeResult && result.codeResult.code) {
-                        Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, { color: "red", lineWidth: 3 });
-                    }
+                    showStatus(`バーコードを検出: ${data.codeResult.code}`, 'success');
+                    stopScanner();
                 }
             });
         }
@@ -262,16 +343,13 @@
             if (scannerRunning) {
                 Quagga.stop();
                 scannerRunning = false;
-                scannerStatus.textContent = 'スキャナー停止済み。';
-                console.log("QuaggaJS stopped.");
+                showStatus('スキャナーを停止しました。', 'info');
             }
         }
 
         startScannerBtn.addEventListener('click', startScanner);
         stopScannerBtn.addEventListener('click', stopScanner);
 
-        // ページ読み込み時にスキャナーを自動起動しない場合、上記2行のイベントリスナーは不要です。
-        // 自動起動したい場合は、上記のイベントリスナーを削除し、startScanner(); を呼び出してください。
     </script>
 </body>
 </html>
