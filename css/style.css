@@ -67,6 +67,23 @@ button {
 #clear-button:hover { background-color: #5a6268; }
 button:disabled { background-color: #ccc; cursor: not-allowed; }
 
+/* バーコード撮影ボタン */
+#scan-image-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #28a745;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+#scan-image-button:hover {
+    background-color: #218838;
+}
+
 /* スキャナー */
 #barcode-scanner-container { margin-bottom: 20px; text-align: center; }
 #interactive.viewport { width: 100%; height: 300px; margin: 0 auto; position: relative; overflow: hidden; border-radius: 8px; background-color: #333; }

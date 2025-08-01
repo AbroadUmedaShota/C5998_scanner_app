@@ -46,26 +46,11 @@
                 <label for="barcode_input">バーコード</label>
                 <input type="text" id="barcode_input" name="entry.1038562288" placeholder="バーコードをスキャンまたは手入力">
                 
+                <!-- 画像ファイルからバーコードを読み取るためのUI -->
                 <div id="barcode-scanner-container">
-                    <div id="barcode-format" style="font-weight: bold; margin-bottom: 10px;"></div>
-                    <div style="margin-bottom: 10px;">
-                        <label for="reader-select" style="display: inline;">リーダー選択:</label>
-                        <select id="reader-select" style="width: auto; padding: 8px;">
-                            <option value="auto">自動判別 (推奨)</option>
-                            <option value="code_39_reader">Code 39</option>
-                            <option value="code_128_reader">Code 128</option>
-                            <option value="ean_reader">EAN</option>
-                            <option value="ean_8_reader">EAN-8</option>
-                            <option value="upc_reader">UPC</option>
-                            <option value="upc_e_reader">UPC-E</option>
-                            <option value="i2of5_reader">Interleaved 2 of 5</option>
-                        </select>
-                    </div>
-                    <div id="interactive" class="viewport"></div>
-                    <div class="scanner-controls">
-                        <button type="button" id="startScanner">スキャナー起動</button>
-                        <button type="button" id="stopScanner">スキャナー停止</button>
-                    </div>
+                    <input type="file" id="barcode-file-input" accept="image/*" capture="environment" style="display: none;">
+                    <button type="button" id="scan-image-button">バーコードを撮影して読み取る</button>
+                    <div id="barcode-format" style="font-weight: bold; margin-top: 10px;"></div>
                 </div>
 
                 <label for="media_title">メディアタイトル</label>
