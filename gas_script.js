@@ -169,11 +169,13 @@ function writeToSheet(data) {
  * @returns {ContentService.TextOutput} - JSONP形式のテキスト出力
  */
 function createJsonResponse(obj) {
-  const jsonp = ContentService.createTextOutput(JSON.stringify(obj))
+  const jsonOutput = ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
   // CORSヘッダーを追加して、どのオリジンからでもアクセスを許可する
-  jsonp.setHeader('Access-Control-Allow-Origin', '*');
-  return jsonp;
+  jsonOutput.setHeader('Access-Control-Allow-Origin', '*');
+  jsonOutput.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  jsonOutput.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  return jsonOutput;
 }
 
 
